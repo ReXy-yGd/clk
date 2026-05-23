@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLICK FORGE</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080a0f;
+    --panel: #0d1017;
+    --border: #1a2035;
+    --accent: #00f5ff;
+    --accent2: #ff3c6e;
+    --accent3: #ffe600;
+    --glow: rgba(0,245,255,0.15);
+    --text: #c8d8e8;
+    --muted: #4a5568;
+    --shield-ok: #00f5ff;
+    --shield-warn: #ff3c6e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    position: relative;
+  }
+
+  .title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3.5rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent), 0 0 60px rgba(0,245,255,0.3);
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    margin-top: 4px;
+  }
+
+  /* Shield / Protection system */
+  .shield-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shield-bar::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--shield-ok);
+    box-shadow: 0 0 10px var(--shield-ok);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .shield-bar.breach::before {
+    background: var(--shield-warn);
+    box-shadow: 0 0 10px var(--shield-warn);
+    animation: pulse-warn 0.5s ease infinite alternate;
+  }
+
+  @keyframes pulse-warn {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+  }
+
+  .shield-icon {
+    font-size: 1.4rem;
+    transition: all 0.3s;
+    filter: drop-shadow(0 0 6px var(--shield-ok));
+  }
+
+  .shield-bar.breach .shield-icon {
+    filter: drop-shadow(0 0 6px var(--shield-warn));
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px) rotate(-5deg); }
+    75% { transform: translateX(4px) rotate(5deg); }
+  }
+
+  .shield-info {
+    flex: 1;
+  }
+
+  .shield-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+  }
+
+  .shield-status {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--shield-ok);
+    transition: color 0.3s;
+  }
+
+  .shield-bar.breach .shield-status { color: var(--shield-warn); }
+
+  .shield-integrity {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  /* Integrity mini-bars */
+  .integrity-dots {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+    justify-content: flex-end;
+  }
+
+  .i-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 4px var(--accent);
+    transition: all 0.3s;
+  }
+
+  .i-dot.lost {
+    background: var(--border);
+    box-shadow: none;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-box::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-value.accent { color: var(--accent); text-shadow: 0 0 10px rgba(0,245,255,0.4); }
+  .stat-value.accent2 { color: var(--accent2); text-shadow: 0 0 10px rgba(255,60,110,0.4); }
+  .stat-value.accent3 { color: var(--accent3); text-shadow: 0 0 10px rgba(255,230,0,0.4); }
+
+  /* Progress bar */
+  .progress-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .progress-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+  }
+
+  .progress-pct {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(0,245,255,0.5);
+  }
+
+  .progress-track {
+    height: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), #00aaff);
+    box-shadow: 0 0 12px rgba(0,245,255,0.6);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    to { left: 200%; }
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+
+  .progress-meta span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+
+  /* MAIN CLICK BUTTON */
+  .btn-area {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  .click-btn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    background: radial-gradient(circle at 35% 35%, #1a2a4a, #0a0f1e);
+    transition: transform 0.08s ease;
+    outline: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Outer rings */
+  .click-btn::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 0.4;
+    box-shadow: 0 0 20px rgba(0,245,255,0.2), inset 0 0 20px rgba(0,245,255,0.05);
+    transition: all 0.2s;
+  }
+
+  .click-btn::after {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0.15;
+    transition: all 0.2s;
+  }
+
+  .click-btn:active {
+    transform: scale(0.93);
+  }
+
+  .click-btn:active::before {
+    opacity: 0.9;
+    box-shadow: 0 0 40px rgba(0,245,255,0.5), inset 0 0 30px rgba(0,245,255,0.15);
+  }
+
+  .click-btn:active::after {
+    opacity: 0.5;
+    inset: -20px;
+  }
+
+  .btn-inner {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #223355, #0d1525);
+    border: 1px solid rgba(0,245,255,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .btn-label {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.2rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent);
+    line-height: 1;
+  }
+
+  .btn-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+  }
+
+  /* Click ripple */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 1;
+    transform: scale(0);
+    animation: rippleOut 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes rippleOut {
+    to { transform: scale(3); opacity: 0; }
+  }
+
+  /* Floating +1 */
+  .float-num {
+    position: fixed;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    color: var(--accent);
+    text-shadow: 0 0 10px var(--accent);
+    pointer-events: none;
+    z-index: 999;
+    animation: floatUp 0.9s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.7); }
+  }
+
+  /* Level up overlay */
+  .levelup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    animation: fadeInOut 2s ease forwards;
+    pointer-events: none;
+  }
+
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .levelup-card {
+    text-align: center;
+    animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes zoomIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .levelup-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 4rem;
+    color: var(--accent3);
+    text-shadow: 0 0 30px var(--accent3), 0 0 60px rgba(255,230,0,0.5);
+    letter-spacing: 0.15em;
+  }
+
+  .levelup-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-top: 8px;
+    letter-spacing: 0.2em;
+  }
+
+  .levelup-new {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    color: var(--accent2);
+    margin-top: 12px;
+  }
+
+  /* Warning flash */
+  .flash-warn {
+    animation: flashRed 0.3s ease;
+  }
+
+  @keyframes flashRed {
+    0%, 100% { background: var(--bg); }
+    50% { background: rgba(255, 60, 110, 0.08); }
+  }
+
+  /* Bottom log */
+  .log-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    max-height: 80px;
+    overflow: hidden;
+  }
+
+  .log-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+  }
+
+  .log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .log-entry {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    opacity: 0;
+    animation: logFade 0.3s ease forwards;
+  }
+
+  .log-entry .ts { color: var(--accent); margin-right: 8px; }
+  .log-entry.warn { color: var(--accent2); }
+  .log-entry.good { color: var(--accent); }
+
+  @keyframes logFade {
+    to { opacity: 1; }
+  }
+
+  /* Breach cooldown bar */
+  .cooldown-bar {
+    height: 3px;
+    background: rgba(255,60,110,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+    display: none;
+  }
+
+  .cooldown-fill {
+    height: 100%;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+    transition: width 0.1s linear;
+  }
+
+  .cooldown-bar.active { display: block; }
+
+  /* Particle canvas */
+  #particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title">CLICK FORGE</div>
+    <div class="subtitle">EXPONENTIAL CLICK ENGINE v1.0</div>
+  </div>
+
+  <!-- SHIELD / PROTECTION -->
+  <div class="shield-bar" id="shieldBar">
+    <div class="shield-icon" id="shieldIcon">🛡️</div>
+    <div class="shield-info">
+      <div class="shield-label">SISTEMA DE PROTECCIÓN</div>
+      <div class="shield-status" id="shieldStatus">ACTIVO — ESCUDO COMPLETO</div>
+      <div class="cooldown-bar" id="cooldownBar">
+        <div class="cooldown-fill" id="cooldownFill" style="width:100%"></div>
+      </div>
+    </div>
+    <div class="shield-integrity">
+      <div id="integrityVal">5/5</div>
+      <div class="integrity-dots" id="integrityDots"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">NIVEL</div>
+      <div class="stat-value accent3" id="levelVal">1</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">META ACTUAL</div>
+      <div class="stat-value accent" id="goalVal">2</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">META ANTERIOR</div>
+      <div class="stat-value accent2" id="prevGoalVal">—</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <div class="progress-title">PROGRESO HACIA LA META</div>
+      <div class="progress-pct" id="pctVal">0%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-meta">
+      <span id="clicksVal">0 clicks</span>
+      <span id="remainVal">2 restantes</span>
+    </div>
+  </div>
+
+  <!-- BUTTON -->
+  <div class="btn-area">
+    <button class="click-btn" id="clickBtn" onclick="handleClick(event)">
+      <div class="btn-inner">
+        <div class="btn-label">FORGE</div>
+        <div class="btn-sub">PRESIONA PARA FORJAR</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-panel">
+    <div class="log-title">// REGISTRO DEL SISTEMA</div>
+    <div class="log-entries" id="logEntries"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let clicks = 0;
+let level = 1;
+let currentGoal = 2;
+let prevGoal = null;
+let integrity = 5;
+const MAX_INTEGRITY = 5;
+let isBreached = false;
+let breachTimeout = null;
+let cooldownInterval = null;
+let cooldownRemaining = 0;
+const COOLDOWN_MS = 4000;
+
+// Anti-cheat: track click speed
+let clickTimestamps = [];
+const MAX_CPS = 8; // max clicks per second allowed
+
+// ─── DOM ─────────────────────────────────────────────────
+const shieldBar = document.getElementById('shieldBar');
+const shieldIcon = document.getElementById('shieldIcon');
+const shieldStatus = document.getElementById('shieldStatus');
+const integrityDots = document.getElementById('integrityDots');
+const integrityVal = document.getElementById('integrityVal');
+const levelVal = document.getElementById('levelVal');
+const goalVal = document.getElementById('goalVal');
+const prevGoalVal = document.getElementById('prevGoalVal');
+const pctVal = document.getElementById('pctVal');
+const progressFill = document.getElementById('progressFill');
+const clicksVal = document.getElementById('clicksVal');
+const remainVal = document.getElementById('remainVal');
+const logEntries = document.getElementById('logEntries');
+const cooldownBar = document.getElementById('cooldownBar');
+const cooldownFill = document.getElementById('cooldownFill');
+
+// ─── INIT ─────────────────────────────────────────────────
+buildIntegrityDots();
+addLog('Sistema iniciado. Meta inicial: 2 clicks.', 'good');
+addLog('Escudo de protección activado.', 'good');
+
+// ─── CLICK HANDLER ────────────────────────────────────────
+function handleClick(e) {
+  if (isBreached) {
+    flashWarning();
+    addLog('⚠ Bloqueado — espera el cooldown del escudo.', 'warn');
+    return;
+  }
+
+  // Anti-cheat check
+  const now = Date.now();
+  clickTimestamps.push(now);
+  clickTimestamps = clickTimestamps.filter(t => now - t < 1000);
+
+  if (clickTimestamps.length > MAX_CPS) {
+    triggerBreach('VELOCIDAD EXCESIVA DETECTADA');
+    return;
+  }
+
+  clicks++;
+  spawnRipple(e);
+  spawnFloat(e);
+  updateUI();
+
+  if (clicks >= currentGoal) {
+    levelUp();
+  }
+}
+
+// ─── LEVEL UP ─────────────────────────────────────────────
+function levelUp() {
+  const oldGoal = currentGoal;
+  prevGoal = currentGoal;
+  currentGoal = prevGoal * prevGoal; // meta^meta
+  clicks = 0;
+  level++;
+
+  showLevelUpOverlay(oldGoal, currentGoal);
+  addLog(`✦ NIVEL ${level} — Nueva meta: ${currentGoal.toLocaleString()} clicks!`, 'good');
+  spawnParticleBurst(20);
+  updateUI();
+}
+
+// ─── BREACH SYSTEM ────────────────────────────────────────
+function triggerBreach(reason) {
+  integrity = Math.max(0, integrity - 1);
+  isBreached = true;
+
+  shieldBar.classList.add('breach');
+  shieldIcon.textContent = '⚠️';
+  shieldStatus.textContent = `BRECHA — ${reason}`;
+  cooldownBar.classList.add('active');
+  document.body.classList.add('flash-warn');
+
+  addLog(`🔴 BRECHA DE SEGURIDAD: ${reason}`, 'warn');
+  addLog(`Integridad del escudo: ${integrity}/${MAX_INTEGRITY}`, 'warn');
+
+  updateIntegrityDots();
+  startCooldown();
+
+  setTimeout(() => document.body.classList.remove('flash-warn'), 300);
+}
+
+function startCooldown() {
+  cooldownRemaining = COOLDOWN_MS;
+  const start = Date.now();
+
+  if (cooldownInterval) clearInterval(cooldownInterval);
+
+  cooldownInterval = setInterval(() => {
+    const elapsed = Date.now() - start;
+    cooldownRemaining = Math.max(0, COOLDOWN_MS - elapsed);
+    const pct = (cooldownRemaining / COOLDOWN_MS) * 100;
+    cooldownFill.style.width = pct + '%';
+
+    if (cooldownRemaining <= 0) {
+      clearInterval(cooldownInterval);
+      resolveBreac();
+    }
+  }, 50);
+}
+
+function resolveBreac() {
+  isBreached = false;
+  shieldBar.classList.remove('breach');
+  shieldIcon.textContent = '🛡️';
+  cooldownBar.classList.remove('active');
+
+  if (integrity <= 0) {
+    shieldStatus.textContent = 'DEGRADADO — PROTECCIÓN MÍNIMA';
+    addLog('⚠ Escudo degradado. Integridad crítica.', 'warn');
+  } else {
+    shieldStatus.textContent = 'ACTIVO — ESCUDO COMPLETO';
+    addLog('Escudo restaurado. Continúa.', 'good');
+  }
+}
+
+function flashWarning() {
+  document.body.classList.add('flash-warn');
+  setTimeout(() => document.body.classList.remove('flash-warn'), 300);
+}
+
+// ─── INTEGRITY DOTS ──────────────────────────────────────
+function buildIntegrityDots() {
+  integrityDots.innerHTML = '';
+  for (let i = 0; i < MAX_INTEGRITY; i++) {
+    const d = document.createElement('div');
+    d.className = 'i-dot' + (i >= integrity ? ' lost' : '');
+    integrityDots.appendChild(d);
+  }
+  integrityVal.textContent = `${integrity}/${MAX_INTEGRITY}`;
+}
+
+function updateIntegrityDots() {
+  const dots = integrityDots.querySelectorAll('.i-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('lost', i >= integrity);
+  });
+  integrityVal.textContent = `${integrity}/${MAX_INTEGRITY}`;
+}
+
+// ─── UI UPDATE ────────────────────────────────────────────
+function updateUI() {
+  const pct = Math.min(100, Math.round((clicks / currentGoal) * 100));
+  progressFill.style.width = pct + '%';
+  pctVal.textContent = pct + '%';
+  clicksVal.textContent = `${clicks.toLocaleString()} clicks`;
+  remainVal.textContent = `${(currentGoal - clicks).toLocaleString()} restantes`;
+  goalVal.textContent = currentGoal.toLocaleString();
+  prevGoalVal.textContent = prevGoal ? prevGoal.toLocaleString() : '—';
+  levelVal.textCont
